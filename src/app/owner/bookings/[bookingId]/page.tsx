@@ -14,7 +14,9 @@ export default async function BookingDetail({ params }: { params: Promise<{ book
   if (!raw) notFound();
 
   const [b] = await enrichBookingsForOwner([raw as Record<string, unknown>]);
-  const upcoming = new Date(b.date) > new Date() && !["cancelled", "declined", "completed"].includes(b.status as string);
+  const canJoin =
+    b.mode === "video" &&
+    ["confirmed", "in_progress", "pending"].includes(b.status as string);
 
   return (
     <div className="max-w-3xl">
@@ -39,13 +41,13 @@ export default async function BookingDetail({ params }: { params: Promise<{ book
           <div><dt className="text-slate-500">Fee</dt><dd className="font-medium">{b.fee != null ? `₹${b.fee}` : "—"}</dd></div>
         </dl>
 
-        {upcoming && (
+        {canJoin && (
           <div className="mt-6 flex gap-3 flex-wrap">
-            <Link href={`/owner/consultations/${b._id}`} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <Link href={`/consult/${b._id}`} className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
               <Video className="size-4" /> Join consultation
             </Link>
             <Link href={`/owner/consultations/${b._id}`} className="inline-flex items-center gap-2 border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50">
-              <MessageSquare className="size-4" /> Message vet
+              <MessageSquare className="size-4" /> Open chat
             </Link>
             <form action={`/api/bookings/${b._id}/cancel`} method="POST">
               <button className="inline-flex items-center gap-2 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50">

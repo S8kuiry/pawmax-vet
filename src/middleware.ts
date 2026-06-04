@@ -4,7 +4,8 @@ import { verifySessionToken } from "@/lib/session-jwt";
 
 const ADMIN_PREFIX = "/admin";
 const VET_PREFIX = "/vet";
-const OWNER_PREFIXES = ["/owner", "/pets", "/dashboard", "/bookings", "/vets", "/consult"];
+const OWNER_PREFIXES = ["/owner", "/pets", "/dashboard", "/bookings", "/vets"];
+const SHARED_PREFIXES = ["/consult"];
 
 export async function middleware(req: NextRequest) {
   const t = req.cookies.get(SESSION_COOKIE)?.value;
@@ -12,7 +13,8 @@ export async function middleware(req: NextRequest) {
   const needsAuth =
     pathname.startsWith(ADMIN_PREFIX) ||
     pathname.startsWith(VET_PREFIX) ||
-    OWNER_PREFIXES.some((p) => pathname.startsWith(p));
+    OWNER_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    SHARED_PREFIXES.some((p) => pathname.startsWith(p));
   if (!needsAuth) return NextResponse.next();
   if (!t) return NextResponse.redirect(new URL("/login", req.url));
   if (!process.env.JWT_SECRET) {
@@ -33,6 +35,14 @@ export async function middleware(req: NextRequest) {
   }
   if (OWNER_PREFIXES.some((p) => pathname.startsWith(p)) && u.role !== "owner" && u.role !== "admin") {
     if (u.role === "vet") return NextResponse.redirect(new URL("/vet/dashboard", req.url));
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+  if (
+    SHARED_PREFIXES.some((p) => pathname.startsWith(p)) &&
+    u.role !== "owner" &&
+    u.role !== "vet" &&
+    u.role !== "admin"
+  ) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
   return NextResponse.next();

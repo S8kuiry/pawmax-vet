@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Video } from "lucide-react";
 import { dbConnect } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import Booking from "@/models/Booking";
@@ -32,6 +33,15 @@ export default async function VetBookingDetail({ params }: { params: Promise<{ b
       {b.petId && (
         <Link href={`/vet/patients/${b.petId}`} className="inline-block mt-6 text-blue-600 font-medium">
           View patient →
+        </Link>
+      )}
+
+      {b.mode === "video" && ["confirmed", "in_progress", "pending"].includes(b.status as string) && (
+        <Link
+          href={`/consult/${b._id}`}
+          className="inline-flex items-center gap-2 mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          <Video className="size-4" /> Join video consultation
         </Link>
       )}
     </div>

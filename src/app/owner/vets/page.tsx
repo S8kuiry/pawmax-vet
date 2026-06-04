@@ -50,7 +50,7 @@ export default async function VetsPage({ searchParams }: { searchParams: Promise
               </div>
             </div>
             <div className="mt-4 pt-4 border-t text-sm flex justify-between text-slate-600">
-              <span>₹500/visit</span>
+              <span>{v.consultationFee ? `₹${v.consultationFee}/visit` : "Free"}</span>
               <span className="text-blue-600 font-medium">View →</span>
             </div>
           </Link>

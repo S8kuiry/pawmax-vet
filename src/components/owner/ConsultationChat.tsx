@@ -3,37 +3,61 @@
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 
-type Msg = { _id: string; senderId: string; text: string; createdAt: string };
+type Msg = {
+  _id: string;
+  senderId: string;
+  senderRole: "vet" | "owner" | "system";
+  text: string;
+  createdAt: string;
+};
 
 export function ConsultationChat({
-  bookingId, currentUserId,
-}: { bookingId: string; currentUserId: string }) {
+  bookingId,
+  currentUserId,
+}: {
+  bookingId: string;
+  currentUserId: string;
+}) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const apiUrl = `/api/consult/${bookingId}/messages`;
 
   useEffect(() => {
+    let alive = true;
     const load = async () => {
-      const r = await fetch(`/api/bookings/${bookingId}/messages`);
-      if (r.ok) setMessages(await r.json());
+      const r = await fetch(apiUrl, { cache: "no-store" });
+      if (r.ok && alive) {
+        const j = await r.json();
+        setMessages(j.messages ?? []);
+      }
     };
     load();
     const t = setInterval(load, 3000);
-    return () => clearInterval(t);
-  }, [bookingId]);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [apiUrl]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
     const body = text;
     setText("");
-    await fetch(`/api/bookings/${bookingId}/messages`, {
+    const r = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: body }),
     });
+    if (r.ok) {
+      const j = await r.json();
+      setMessages((m) => [...m, j.message]);
+    }
   }
 
   return (
@@ -43,12 +67,21 @@ export function ConsultationChat({
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((m) => {
+          if (m.senderRole === "system") {
+            return (
+              <p key={m._id} className="text-xs text-center text-slate-400">
+                {m.text}
+              </p>
+            );
+          }
           const mine = m.senderId === currentUserId;
           return (
             <div key={m._id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
-                mine ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-800"
-              }`}>
+              <div
+                className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                  mine ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-800"
+                }`}
+              >
                 {m.text}
               </div>
             </div>

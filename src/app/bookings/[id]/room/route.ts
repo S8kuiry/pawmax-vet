@@ -1,37 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isValidObjectId } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import Booking from "@/models/Booking";
-import ConsultationRoom from "@/models/ConsultationRoom";
-import { createDailyRoom, createMeetingToken } from "@/lib/daily";
+import Consultation from "@/models/Consultation";
+import { jitsiRoomName } from "@/lib/consult-session";
 
 export async function POST(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const s = await requireRole(["owner","vet"]);
+  const s = await requireRole(["owner", "vet"]);
+
+  if (!isValidObjectId(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   await dbConnect();
   const booking = await Booking.findById(id);
   if (!booking) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const isParty = [String(booking.customerId), String(booking.vetId)].includes(s.id);
+  const isParty = [String(booking.ownerId), String(booking.vetId)].includes(s.id);
   if (!isParty) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  let room = await ConsultationRoom.findOne({ bookingId: booking._id });
-  if (!room) {
-    const mode = booking.mode || "video";
-    let dailyRoomUrl: string | undefined, dailyRoomName: string | undefined;
-    if (mode === "video") {
-      const created = await createDailyRoom(`pv-${booking._id}`);
-      dailyRoomUrl = created.url; dailyRoomName = created.name;
-    }
-    room = await ConsultationRoom.create({
-      bookingId: booking._id, ownerId: booking.customerId, vetId: booking.vetId,
-      mode, dailyRoomUrl, dailyRoomName,
+  const roomUrl = `jitsi:${jitsiRoomName(String(booking._id))}`;
+  let consultation = await Consultation.findOne({ bookingId: booking._id });
+  if (!consultation) {
+    consultation = await Consultation.create({
+      bookingId: booking._id,
+      ownerId: booking.ownerId,
+      vetId: booking.vetId,
+      petId: booking.petId,
+      mode: booking.mode ?? "video",
+      status: "live",
+      roomUrl,
+      startedAt: new Date(),
     });
+  } else if (!consultation.roomUrl) {
+    consultation.roomUrl = roomUrl;
+    await consultation.save();
   }
 
-  let token: string | undefined;
-  if (room.mode === "video" && room.dailyRoomName) {
-    token = await createMeetingToken(room.dailyRoomName, s.email, s.role === "vet");
-  }
-  return NextResponse.json({ room, token });
+  return NextResponse.json({
+    room: {
+      bookingId: booking._id,
+      ownerId: booking.ownerId,
+      vetId: booking.vetId,
+      mode: booking.mode,
+      roomUrl: consultation.roomUrl,
+      jitsiRoom: jitsiRoomName(String(booking._id)),
+    },
+    joinUrl:
+      s.role === "vet"
+        ? `/vet/consultations/${booking._id}`
+        : `/owner/consultations/${booking._id}`,
+  });
 }

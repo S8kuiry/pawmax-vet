@@ -33,7 +33,7 @@ export default async function ConsultationsPage() {
           {sessions.map((b) => {
             const live = new Date(b.date) <= new Date();
             return (
-              <Link key={String(b._id)} href={`/owner/consultations/${b._id}`}
+              <Link key={String(b._id)} href={`/consult/${b._id}`}
                 className="block bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition">
                 <div className="flex items-center gap-4">
                   <div className="size-12 rounded-xl bg-blue-50 grid place-items-center"><Video className="size-5 text-blue-600" /></div>

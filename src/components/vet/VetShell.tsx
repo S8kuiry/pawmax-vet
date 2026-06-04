@@ -8,6 +8,7 @@ import {
   User, Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 const groups = [
   {
@@ -39,6 +40,8 @@ const groups = [
   },
 ];
 
+const CONSULT_ROOM = /^\/vet\/consultations\/[^/]+$/;
+
 export function VetShell({
   children,
   userName,
@@ -49,6 +52,12 @@ export function VetShell({
   initials: string;
 }) {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+  const fullscreen = CONSULT_ROOM.test(pathname ?? "");
+
+  if (fullscreen) {
+    return <div className="min-h-screen bg-slate-950">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen flex bg-[#F6F7F9] text-slate-900">
@@ -92,25 +101,51 @@ export function VetShell({
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/5">
-          <form action="/api/auth/logout" method="post">
-            <button
-              type="submit"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              <LogOut className="size-4" /> Sign out
-            </button>
-          </form>
-          <div className="mt-4 flex items-center gap-3 px-3">
-            <div className="size-9 rounded-full bg-blue-500/20 grid place-items-center text-sm font-semibold text-blue-300">
-              {initials}
-            </div>
-            <div className="leading-tight min-w-0">
-              <p className="text-sm font-medium text-slate-100 truncate">{userName}</p>
-              <p className="text-xs text-slate-500">Veterinarian</p>
-            </div>
-          </div>
-        </div>
+       {/* Container needs 'relative' so the dropdown displays correctly above it */}
+       <div className="relative p-4 border-t border-gray-200/40 bg-[#0E1525] shrink-0">
+
+{/* Floating Dropdown Menu */}
+{isOpen && (
+  <div className="absolute bottom-full left-4 right-4 mb-2 p-1.5 rounded-xl border border-[#243249]/50 bg-[#111a2e] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-100">
+    <form action="/api/auth/logout" method="post">
+      <button
+        type="submit"
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium text-slate-400 hover:text-red-400 hover:bg-red-950/20 transition-all duration-150 group outline-none"
+      >
+        <LogOut className="size-[17px] stroke-[2] text-slate-500 group-hover:text-red-400 transition-colors" />
+        <span>Log out</span>
+      </button>
+    </form>
+  </div>
+)}
+
+{/* Interactive Profile Trigger Strip */}
+<button
+  type="button"
+  onClick={() => setIsOpen(!isOpen)}
+  className="w-full flex items-center justify-between gap-3 p-2 rounded-xl transition-all duration-150 group outline-none hover:bg-[#162032]/60 text-left"
+>
+  <div className="flex items-center gap-3 min-w-0">
+    {/* Initials Avatar Badge */}
+    <div className="size-9 rounded-full flex items-center justify-center text-xs font-bold text-slate-200 bg-[#172237] border border-[#243249]/40 group-hover:border-slate-500/40 transition-colors shrink-0">
+      {initials}
+    </div>
+
+    {/* User Info Matrix */}
+    <div className="flex flex-col min-w-0">
+      <p className="text-[13.5px] font-semibold text-slate-200 tracking-tight leading-none mb-1 truncate">
+        {userName}
+      </p>
+      <p className="text-[11px] font-medium text-slate-500 tracking-normal leading-none truncate">
+        Veterninarian
+      </p>
+    </div>
+  </div>
+
+  {/* Clean, subtle micro-indicator dot or down arrow (Optional decoration matching Vellum) */}
+  <div className="size-1.5 rounded-full bg-slate-600 group-hover:bg-blue-400 transition-colors shrink-0 mr-1" />
+</button>
+</div>
       </aside>
 
       <main className="flex-1 min-w-0">{children}</main>

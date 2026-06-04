@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { dbConnect } from "@/lib/db";
 import Pet from "@/models/Pet";
-import Booking from "@/models/Booking";
 import Prescription from "@/models/Prescription";
 import { getSession } from "@/lib/auth";
 import { enrichBookingsForOwner } from "@/lib/booking-display";
 import { PawPrint, CalendarDays, Stethoscope, FileText, Plus, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
+import Booking from "@/models/Booking";
 
 export default async function OwnerDashboard() {
   const session = await getSession();
@@ -37,13 +37,13 @@ export default async function OwnerDashboard() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white p-8">
+      <section className="rounded-2xl bg-gradient-to-r from-[#0E1525] to-blue-500 text-white p-8">
         <p className="text-blue-100 text-sm">Welcome back</p>
         <h1 className="text-3xl font-bold mt-1">Hi {session!.email.split("@")[0]} 👋</h1>
         <p className="mt-2 text-blue-50">Manage your pets, book vets, track health — all in one place.</p>
         <div className="mt-6 flex gap-3 flex-wrap">
           <Link href="/owner/vets" className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50">Book a vet</Link>
-          <Link href="/owner/pets/new" className="bg-blue-700/40 border border-white/30 px-4 py-2 rounded-lg font-medium hover:bg-blue-700/60">+ Add pet</Link>
+          <Link href="/owner/pets/new" className="bg-white text-blue-700 border border-white/30 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 ">+ Add pet</Link>
         </div>
       </section>
 

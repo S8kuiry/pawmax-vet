@@ -1,32 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isValidObjectId } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
-import ConsultationRoom from "@/models/ConsultationRoom";
+import Booking from "@/models/Booking";
+import Message from "@/models/Message";
+import { formatMessageForClient } from "@/lib/message-format";
 
-const Msg = z.object({ text: z.string().min(1).max(2000) });
+const Msg = z.object({ text: z.string().min(1).max(4000) });
+
+function isBookingParty(
+  booking: { vetId: unknown; ownerId: unknown },
+  userId: string,
+) {
+  return [String(booking.vetId), String(booking.ownerId)].includes(userId);
+}
 
 export async function GET(_: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const s = await requireRole(["owner","vet"]);
+  const s = await requireRole(["owner", "vet"]);
+  if (!isValidObjectId(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   await dbConnect();
-  const room = await ConsultationRoom.findOne({ bookingId: id }).lean();
-  if (!room) return NextResponse.json({ messages: [] });
-  if (![String((room as any).ownerId), String((room as any).vetId)].includes(s.id))
+  const booking = await Booking.findById(id).lean();
+  if (!booking || !isBookingParty(booking, s.id)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  return NextResponse.json({ messages: (room as any).messages });
+  }
+
+  const messages = await Message.find({
+    booking: id,
+    deletedAt: { $exists: false },
+  })
+    .sort({ createdAt: 1 })
+    .limit(500)
+    .lean();
+
+  return NextResponse.json({
+    messages: messages.map((m) => formatMessageForClient(m)),
+  });
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const s = await requireRole(["owner","vet"]);
+  const s = await requireRole(["owner", "vet"]);
   const { text } = Msg.parse(await req.json());
+
+  if (!isValidObjectId(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   await dbConnect();
-  const room = await ConsultationRoom.findOne({ bookingId: id });
-  if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (![String(room.ownerId), String(room.vetId)].includes(s.id))
+  const booking = await Booking.findById(id);
+  if (!booking || !isBookingParty(booking, s.id)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  room.messages.push({ senderId: s.id as any, senderRole: s.role as any, text, at: new Date() } as any);
-  await room.save();
-  return NextResponse.json({ ok: true, message: room.messages[room.messages.length - 1] });
+  }
+
+  const message = await Message.create({
+    booking: booking._id,
+    sender: s.id,
+    senderRole: s.role as "owner" | "vet",
+    kind: "text",
+    text,
+    readBy: [s.id],
+  });
+
+  return NextResponse.json({
+    ok: true,
+    message: formatMessageForClient(message),
+  });
 }
