@@ -1,22 +1,28 @@
-import { Schema, model, models, Types } from "mongoose";
-
-const MessageSchema = new Schema({
-  senderId: { type: Types.ObjectId, ref: "User", required: true },
-  senderRole: { type: String, enum: ["owner","vet"], required: true },
-  text: { type: String, required: true, maxlength: 2000 },
-  at: { type: Date, default: Date.now },
-}, { _id: true });
-
-const ConsultationRoomSchema = new Schema({
-  bookingId: { type: Types.ObjectId, ref: "Booking", required: true, unique: true, index: true },
-  ownerId:   { type: Types.ObjectId, ref: "User", required: true },
-  vetId:     { type: Types.ObjectId, ref: "User", required: true },
-  mode:      { type: String, enum: ["video","chat","clinic"], required: true },
-  dailyRoomUrl: { type: String },
-  dailyRoomName:{ type: String },
-  startedAt: { type: Date },
-  endedAt:   { type: Date },
-  messages:  [MessageSchema],
-}, { timestamps: true });
-
-export default models.ConsultationRoom || model("ConsultationRoom", ConsultationRoomSchema);
+import mongoose, { Schema, models, model } from "mongoose";
+const ConsultationSchema = new Schema(
+  {
+    bookingId: { type: Schema.Types.ObjectId, ref: "Booking", required: true, unique: true },
+    vetId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    petId: { type: Schema.Types.ObjectId, ref: "Pet", required: true },
+    status: {
+      type: String,
+      enum: ["queued", "live", "ended", "cancelled"],
+      default: "queued",
+      index: true,
+    },
+    mode: { type: String, enum: ["in-person", "video"], default: "video" },
+    roomUrl: { type: String, default: "" }, // for video calls
+    startedAt: Date,
+    endedAt: Date,
+    durationSeconds: { type: Number, default: 0 },
+    // SOAP-style notes captured during consult
+    subjective: { type: String, default: "" },
+    objective: { type: String, default: "" },
+    assessment: { type: String, default: "" },
+    plan: { type: String, default: "" },
+  },
+  { timestamps: true },
+);
+export default (models.Consultation as mongoose.Model<any>) ||
+  model("Consultation", ConsultationSchema);

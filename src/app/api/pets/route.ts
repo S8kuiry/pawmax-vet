@@ -4,12 +4,14 @@ import { dbConnect } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import Pet from "@/models/Pet";
 
+// Updated validation schema to match frontend and Mongoose
 const PetCreate = z.object({
   name: z.string().min(1).max(60),
   species: z.enum(["Dog","Cat","Rabbit","Bird","Reptile","Other"]),
   breed: z.string().max(80).optional(),
   sex: z.enum(["male","female","unknown"]).optional(),
-  dob: z.string().datetime().optional(),
+  // FIX: Coerce the incoming "YYYY-MM-DD" string into a native JavaScript Date object
+  dob: z.coerce.date().optional(),
   weightKg: z.number().min(0).max(200).optional(),
   color: z.string().max(40).optional(),
   photoUrl: z.string().url().optional(),

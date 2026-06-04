@@ -1,33 +1,45 @@
-import { Schema, model, models, Types } from "mongoose";
-
-const SlotSchema = new Schema({
-  start: { type: String, required: true },                // "09:00"
-  end:   { type: String, required: true },                // "13:00"
-}, { _id: false });
-
-const AvailabilitySchema = new Schema({
-  vetId: { type: Types.ObjectId, ref: "Vet", required: true, unique: true },
-
-  timezone: { type: String, default: "Asia/Kolkata" },
-  slotDurationMin: { type: Number, default: 15 },
-  bufferMin: { type: Number, default: 5 },
-  advanceBookingDays: { type: Number, default: 14 },
-
-  weekly: {                                               // 0=Sun .. 6=Sat
-    "0": [SlotSchema], "1": [SlotSchema], "2": [SlotSchema],
-    "3": [SlotSchema], "4": [SlotSchema], "5": [SlotSchema], "6": [SlotSchema],
+import mongoose, { Schema, models, model } from "mongoose";
+/**
+ * Weekly recurring availability + blackout dates for a vet.
+ * One document per vet.
+ */
+const DayHoursSchema = new Schema(
+  {
+    day: { type: Number, min: 0, max: 6, required: true }, // 0 = Sunday
+    open: { type: Boolean, default: true },
+    start: { type: String, default: "09:00" }, // "HH:mm"
+    end: { type: String, default: "18:00" },
+    breaks: [
+      {
+        start: String,
+        end: String,
+      },
+    ],
   },
-
-  overrides: [{                                           // single-day overrides
+  { _id: false },
+);
+const BlackoutSchema = new Schema(
+  {
     date: { type: Date, required: true },
-    slots: [SlotSchema],
-    isClosed: { type: Boolean, default: false },
-    reason: String,
-  }],
-
-  blocks: [{                                              // ad-hoc unavailable ranges
-    startAt: Date, endAt: Date, reason: String,
-  }],
-}, { timestamps: true });
-
-export default models.Availability || model("Availability", AvailabilitySchema);
+    reason: { type: String, default: "" },
+  },
+  { _id: true },
+);
+const AvailabilitySchema = new Schema(
+  {
+    vetId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+      index: true,
+    },
+    timezone: { type: String, default: "UTC" },
+    slotMinutes: { type: Number, default: 30, min: 10, max: 240 },
+    weeklyHours: { type: [DayHoursSchema], default: [] },
+    blackouts: { type: [BlackoutSchema], default: [] },
+  },
+  { timestamps: true },
+);
+export default (models.Availability as mongoose.Model<any>) ||
+  model("Availability", AvailabilitySchema);

@@ -1,8 +1,39 @@
-export default function Page() {
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { dbConnect } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import Booking from "@/models/Booking";
+
+export default async function VetBookingDetail({ params }: { params: Promise<{ bookingId: string }> }) {
+  const { bookingId } = await params;
+  const session = await getSession();
+  await dbConnect();
+  const b = await Booking.findOne({ _id: bookingId, vetId: session!.id }).lean();
+  if (!b) notFound();
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-brand-900">Vet / Bookings</h1>
-      <p className="mt-2 text-slate-600">This section is coming soon.</p>
+    <div className="px-10 py-10 max-w-3xl mx-auto">
+      <Link href="/vet/bookings" className="text-sm text-slate-500 hover:text-blue-600">← Back to bookings</Link>
+      <h1 className="text-3xl font-semibold mt-4">{b.patientName} · {b.ownerName}</h1>
+      <p className="text-slate-500 mt-1 capitalize">{b.status} · {b.mode}</p>
+
+      <dl className="mt-6 grid grid-cols-2 gap-4 text-sm bg-white border border-slate-200 rounded-2xl p-6">
+        <div><dt className="text-slate-500">When</dt><dd className="font-medium">{new Date(b.startAt).toLocaleString()}</dd></div>
+        <div><dt className="text-slate-500">Reason</dt><dd className="font-medium">{b.reason || "—"}</dd></div>
+        <div><dt className="text-slate-500">Notes</dt><dd className="font-medium">{b.notes || "—"}</dd></div>
+      </dl>
+
+      {b.status === "pending" && (
+        <form action={`/api/vet/bookings/${b._id}`} method="POST" className="mt-6">
+          <p className="text-sm text-slate-500 mb-2">Confirm or decline from the API console, or use PATCH via your admin tools.</p>
+        </form>
+      )}
+
+      {b.petId && (
+        <Link href={`/vet/patients/${b.petId}`} className="inline-block mt-6 text-blue-600 font-medium">
+          View patient →
+        </Link>
+      )}
     </div>
   );
 }

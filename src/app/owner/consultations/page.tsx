@@ -2,16 +2,20 @@ import Link from "next/link";
 import { dbConnect } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { getSession } from "@/lib/auth";
+import { enrichBookingsForOwner } from "@/lib/booking-display";
 import { Video } from "lucide-react";
 
 export default async function ConsultationsPage() {
   const session = await getSession();
   await dbConnect();
-  const sessions = await Booking.find({
+  const raw = await Booking.find({
     ownerId: session!.id,
-    status: { $in: ["confirmed", "in_progress"] },
-    date: { $gte: new Date(Date.now() - 2 * 3600 * 1000) },
-  }).sort({ date: 1 }).lean();
+    mode: "video",
+    status: { $in: ["confirmed", "in_progress", "pending"] },
+    startAt: { $gte: new Date(Date.now() - 2 * 3600 * 1000) },
+  }).sort({ startAt: 1 }).lean();
+
+  const sessions = await enrichBookingsForOwner(raw as Record<string, unknown>[]);
 
   return (
     <div>
@@ -22,10 +26,11 @@ export default async function ConsultationsPage() {
         <div className="mt-6 text-center py-16 bg-white border border-dashed rounded-xl">
           <Video className="size-10 mx-auto text-slate-300" />
           <p className="mt-3 text-slate-500">No active consultations</p>
+          <Link href="/owner/vets" className="inline-block mt-3 text-blue-600 font-medium hover:underline">Book a vet →</Link>
         </div>
       ) : (
         <ul className="mt-6 space-y-3">
-          {sessions.map((b: any) => {
+          {sessions.map((b) => {
             const live = new Date(b.date) <= new Date();
             return (
               <Link key={String(b._id)} href={`/owner/consultations/${b._id}`}

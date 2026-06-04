@@ -7,9 +7,9 @@ export default async function VetsPage({ searchParams }: { searchParams: Promise
   const { q = "", specialty = "" } = await searchParams;
   await dbConnect();
 
-  const filter: any = { role: "vet", kycStatus: "approved" };
+  const filter: Record<string, unknown> = { role: "vet", status: "active" };
   if (q) filter.name = { $regex: q, $options: "i" };
-  if (specialty) filter.specialties = specialty;
+  if (specialty) filter.specialty = { $regex: specialty, $options: "i" };
 
   const vets = await User.find(filter).limit(50).lean();
   const specialties = ["General", "Surgery", "Dermatology", "Dentistry", "Behavior", "Exotic"];
@@ -43,14 +43,14 @@ export default async function VetsPage({ searchParams }: { searchParams: Promise
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-blue-700">Dr. {v.name}</p>
-                <p className="text-sm text-slate-500 truncate">{v.specialties?.[0] || "General Practice"}</p>
+                <p className="text-sm text-slate-500 truncate">{v.specialty || "General Practice"}</p>
                 <div className="flex items-center gap-1 mt-1 text-xs text-amber-500">
-                  <Star className="size-3 fill-current" /> {v.rating?.toFixed(1) || "4.8"} · {v.reviewsCount || 0} reviews
+                  <Star className="size-3 fill-current" /> 4.8
                 </div>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t text-sm flex justify-between text-slate-600">
-              <span>₹{v.fee || 500}/visit</span>
+              <span>₹500/visit</span>
               <span className="text-blue-600 font-medium">View →</span>
             </div>
           </Link>

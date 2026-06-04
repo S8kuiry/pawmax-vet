@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
 
-// Force Google DNS on server side
-if (typeof window === "undefined") {
-  const dns = await import("dns");
-  dns.default.setDefaultResultOrder("ipv4first");
-  dns.default.setServers(["8.8.8.8", "8.8.4.4"]);
-}
-
 const MONGODB_URI = process.env.MONGODB_URI!;
 
 if (!MONGODB_URI) {
@@ -16,9 +9,14 @@ if (!MONGODB_URI) {
 const connection = { isConnected: 0 };
 
 export async function dbConnect() {
-  if (connection.isConnected === 1) {
-    return;
+  // ✅ DNS config moved inside — await is valid here
+  if (typeof window === "undefined") {
+    const dns = await import("dns");
+    dns.default.setDefaultResultOrder("ipv4first");
+    dns.default.setServers(["8.8.8.8", "8.8.4.4"]);
   }
+
+  if (connection.isConnected === 1) return;
 
   if (mongoose.connection.readyState === 1) {
     connection.isConnected = 1;
@@ -35,12 +33,8 @@ export async function dbConnect() {
   }
 
   try {
-    const db = await mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
-
+    const db = await mongoose.connect(MONGODB_URI, { bufferCommands: false });
     connection.isConnected = db.connections[0].readyState;
-
     console.log("MongoDB connected successfully");
   } catch (err: any) {
     connection.isConnected = 0;

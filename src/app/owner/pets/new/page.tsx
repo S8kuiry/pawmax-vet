@@ -27,10 +27,15 @@ export default function NewPetPage() {
       return;
     }
     setLoading(true);
+    const { dob, gender, ...rest } = parsed.data;
     const res = await fetch("/api/pets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify({
+        ...rest,
+        sex: gender,
+        birthDate: dob || undefined,
+      }),
     });
     setLoading(false);
     if (!res.ok) { setError("Failed to create pet"); return; }

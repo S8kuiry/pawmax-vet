@@ -1,55 +1,112 @@
-import { TopBar } from "@/components/TopBar";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { bookings } from "@/lib/mock-data";
-import { inr } from "@/lib/utils";
-import { CalendarCheck, IndianRupee, Star, Users } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, DollarSign, PawPrint, Video } from "lucide-react";
+import { dbConnect } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import Booking from "@/models/Booking";
+import Pet from "@/models/Pet";
+import User from "@/models/User";
+import Transaction from "@/models/Transaction";
+import { formatInrFromCents } from "@/lib/booking-display";
 
-export default function VetDashboard() {
-  const today = bookings.filter(b => b.status !== "completed");
-  const earnings = bookings.filter(b => b.status === "completed").reduce((s, b) => s + b.fee, 0);
+export default async function VetDashboardPage() {
+  const session = await getSession();
+  await dbConnect();
+  const vetId = session!.id;
+  const user = await User.findById(vetId).select("name").lean();
+
+  const now = new Date();
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(now);
+  dayEnd.setHours(23, 59, 59, 999);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [todayCount, activeCount, petIds, monthAgg, todayBookings, pending] = await Promise.all([
+    Booking.countDocuments({ vetId, startAt: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["cancelled", "declined"] } }),
+    Booking.countDocuments({ vetId, status: "in_progress" }),
+    Booking.distinct("petId", { vetId }),
+    Transaction.aggregate([
+      { $match: { vetId, kind: { $in: ["charge", "refund"] }, occurredAt: { $gte: monthStart } } },
+      { $group: { _id: null, total: { $sum: "$netCents" } } },
+    ]),
+    Booking.find({ vetId, startAt: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["cancelled", "declined"] } })
+      .sort({ startAt: 1 }).limit(8).lean(),
+    Booking.countDocuments({ vetId, status: "pending" }),
+  ]);
+
+  const monthPatients = await Pet.countDocuments({ _id: { $in: petIds }, createdAt: { $gte: monthStart } });
+  const displayName = user?.name ? `Dr. ${user.name}` : "Doctor";
+
+  const stats = [
+    { label: "Today's appointments", value: String(todayCount), icon: CalendarDays },
+    { label: "Active consults", value: String(activeCount), icon: Video },
+    { label: "New patients (mo)", value: String(monthPatients), icon: PawPrint },
+    { label: "Earnings (mo)", value: formatInrFromCents(monthAgg[0]?.total), icon: DollarSign },
+  ];
 
   return (
-    <>
-      <TopBar />
-      <main className="mx-auto max-w-7xl px-6 py-10 space-y-8">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-brand-700">Veterinarian</p>
-          <h1 className="text-3xl font-bold text-slate-900">Good morning, Dr. Aanya</h1>
-        </div>
+    <div className="px-10 py-10 max-w-[1400px] mx-auto">
+      <div className="mb-8">
+        <p className="text-xs uppercase tracking-[0.2em] text-blue-600/80 font-medium mb-2">Overview</p>
+        <h1 className="text-3xl font-semibold">Good morning, {displayName}</h1>
+        <p className="mt-2 text-slate-500">Here&apos;s what&apos;s happening across your practice today.</p>
+      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: CalendarCheck, l: "Today's queue", v: today.length },
-            { icon: Users,        l: "Active patients", v: 42 },
-            { icon: Star,         l: "Rating",          v: "4.9" },
-            { icon: IndianRupee,  l: "Week earnings",   v: inr(earnings + 9800) },
-          ].map(s => (
-            <Card key={s.l}><CardBody className="flex items-center gap-4">
-              <span className="size-11 rounded-xl bg-brand-50 text-brand-700 grid place-items-center"><s.icon className="size-5" /></span>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{s.v}</p>
-                <p className="text-xs text-slate-500">{s.l}</p>
-              </div>
-            </CardBody></Card>
-          ))}
-        </div>
-
-        <Card><CardBody>
-          <h2 className="font-semibold text-slate-900 mb-4">Today's consultations</h2>
-          <ul className="divide-y divide-slate-100">
-            {today.map(b => (
-              <li key={b.id} className="py-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{b.petName} <span className="text-slate-400">·</span> {b.mode}</p>
-                  <p className="text-sm text-slate-500">{b.date} at {b.slot}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {stats.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className="rounded-2xl bg-white border border-slate-200 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-slate-500">{s.label}</span>
+                <div className="size-9 rounded-lg bg-blue-50 grid place-items-center">
+                  <Icon className="size-4 text-blue-600" />
                 </div>
-                <Badge tone={b.status === "confirmed" ? "green" : "amber"}>{b.status}</Badge>
-              </li>
-            ))}
-          </ul>
-        </CardBody></Card>
-      </main>
-    </>
+              </div>
+              <p className="text-2xl font-semibold">{s.value}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <section className="xl:col-span-2 rounded-2xl bg-white border border-slate-200 p-6">
+          <h2 className="text-lg font-semibold mb-1">Upcoming today</h2>
+          <p className="text-sm text-slate-500 mb-5">Confirmed appointments for today.</p>
+          {todayBookings.length === 0 ? (
+            <p className="text-sm text-slate-500">No appointments scheduled for today.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {todayBookings.map((b) => (
+                <li key={String(b._id)} className="py-3 text-sm flex justify-between gap-4">
+                  <span>
+                    {new Date(b.startAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {" — "}
+                    {b.patientName} ({b.mode})
+                    {b.reason ? ` · ${b.reason}` : ""}
+                  </span>
+                  <Link href={`/vet/bookings/${b._id}`} className="text-blue-600 shrink-0">View</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <aside className="rounded-2xl bg-white border border-slate-200 p-6">
+          <h2 className="text-lg font-semibold mb-1">Pending requests</h2>
+          <p className="text-sm text-slate-500 mb-5">Booking requests awaiting your response.</p>
+          {pending === 0 ? (
+            <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl text-sm text-slate-500">
+              All caught up.
+            </div>
+          ) : (
+            <div className="text-center py-10 border border-dashed border-amber-200 bg-amber-50 rounded-xl">
+              <p className="text-2xl font-semibold text-amber-800">{pending}</p>
+              <p className="text-sm text-amber-700 mt-1">pending booking{pending !== 1 ? "s" : ""}</p>
+              <Link href="/vet/bookings" className="inline-block mt-3 text-sm text-blue-600 font-medium">Review →</Link>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
   );
 }

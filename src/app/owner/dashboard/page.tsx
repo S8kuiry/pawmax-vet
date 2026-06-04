@@ -2,31 +2,44 @@ import Link from "next/link";
 import { dbConnect } from "@/lib/db";
 import Pet from "@/models/Pet";
 import Booking from "@/models/Booking";
+import Prescription from "@/models/Prescription";
 import { getSession } from "@/lib/auth";
+import { enrichBookingsForOwner } from "@/lib/booking-display";
 import { PawPrint, CalendarDays, Stethoscope, FileText, Plus, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 
 export default async function OwnerDashboard() {
   const session = await getSession();
   await dbConnect();
 
-  const [pets, upcoming, recent] = await Promise.all([
+  const now = new Date();
+  const [pets, upcomingRaw, recentRaw, rxCount] = await Promise.all([
     Pet.find({ ownerId: session!.id }).lean(),
-    Booking.find({ ownerId: session!.id, date: { $gte: new Date() } }).sort({ date: 1 }).limit(5).lean(),
-    Booking.find({ ownerId: session!.id, status: "completed" }).sort({ date: -1 }).limit(3).lean(),
+    Booking.find({
+      ownerId: session!.id,
+      startAt: { $gte: now },
+      status: { $nin: ["cancelled", "declined"] },
+    }).sort({ startAt: 1 }).limit(5).lean(),
+    Booking.find({ ownerId: session!.id, status: "completed" }).sort({ startAt: -1 }).limit(3).lean(),
+    Prescription.countDocuments({ ownerId: session!.id, status: "active" }),
+  ]);
+
+  const [upcoming, recent] = await Promise.all([
+    enrichBookingsForOwner(upcomingRaw as Record<string, unknown>[]),
+    enrichBookingsForOwner(recentRaw as Record<string, unknown>[]),
   ]);
 
   const stats = [
     { label: "My Pets", value: pets.length, icon: PawPrint, href: "/owner/pets" },
     { label: "Upcoming", value: upcoming.length, icon: CalendarDays, href: "/owner/bookings" },
-    { label: "Completed", value: recent.length, icon: CheckCircle2, href: "/owner/bookings" },
-    { label: "Prescriptions", value: 0, icon: FileText, href: "/owner/prescriptions" },
+    { label: "Completed", value: recent.length, icon: CheckCircle2, href: "/owner/bookings?tab=past" },
+    { label: "Prescriptions", value: rxCount, icon: FileText, href: "/owner/prescriptions" },
   ];
 
   return (
     <div className="space-y-8">
       <section className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white p-8">
         <p className="text-blue-100 text-sm">Welcome back</p>
-        <h1 className="text-3xl font-bold mt-1">Hi {session!.email.split(" ")[0]} 👋</h1>
+        <h1 className="text-3xl font-bold mt-1">Hi {session!.email.split("@")[0]} 👋</h1>
         <p className="mt-2 text-blue-50">Manage your pets, book vets, track health — all in one place.</p>
         <div className="mt-6 flex gap-3 flex-wrap">
           <Link href="/owner/vets" className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50">Book a vet</Link>
@@ -59,7 +72,7 @@ export default async function OwnerDashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {upcoming.map((b: any) => (
+              {upcoming.map((b) => (
                 <li key={String(b._id)} className="py-3 flex items-center gap-4">
                   <div className="size-10 rounded-lg bg-blue-50 grid place-items-center"><Clock className="size-4 text-blue-600" /></div>
                   <div className="flex-1 min-w-0">
@@ -85,12 +98,12 @@ export default async function OwnerDashboard() {
             </div>
           ) : (
             <ul className="space-y-3">
-              {pets.slice(0, 5).map((p: any) => (
+              {pets.slice(0, 5).map((p: Record<string, unknown>) => (
                 <Link key={String(p._id)} href={`/owner/pets/${p._id}`} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50">
                   <div className="size-9 rounded-lg bg-blue-50 grid place-items-center"><PawPrint className="size-4 text-blue-600" /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.species} · {p.breed}</p>
+                    <p className="font-medium truncate">{p.name as string}</p>
+                    <p className="text-xs text-slate-500">{p.species as string} · {(p.breed as string) || "—"}</p>
                   </div>
                   <ArrowRight className="size-4 text-slate-400" />
                 </Link>

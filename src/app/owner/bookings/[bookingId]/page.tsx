@@ -3,16 +3,18 @@ import Link from "next/link";
 import { dbConnect } from "@/lib/db";
 import Booking from "@/models/Booking";
 import { getSession } from "@/lib/auth";
+import { enrichBookingsForOwner } from "@/lib/booking-display";
 import { ArrowLeft, Video, MessageSquare, X } from "lucide-react";
 
 export default async function BookingDetail({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = await params;
   const session = await getSession();
   await dbConnect();
-  const b = await Booking.findOne({ _id: bookingId, ownerId: session!.id }).lean() as any;
-  if (!b) notFound();
+  const raw = await Booking.findOne({ _id: bookingId, ownerId: session!.id }).lean();
+  if (!raw) notFound();
 
-  const upcoming = new Date(b.date) > new Date() && b.status !== "cancelled";
+  const [b] = await enrichBookingsForOwner([raw as Record<string, unknown>]);
+  const upcoming = new Date(b.date) > new Date() && !["cancelled", "declined", "completed"].includes(b.status as string);
 
   return (
     <div className="max-w-3xl">
@@ -34,7 +36,7 @@ export default async function BookingDetail({ params }: { params: Promise<{ book
           <div><dt className="text-slate-500">Date & time</dt><dd className="font-medium">{new Date(b.date).toLocaleString()}</dd></div>
           <div><dt className="text-slate-500">Duration</dt><dd className="font-medium">{b.durationMin} min</dd></div>
           <div><dt className="text-slate-500">Mode</dt><dd className="font-medium capitalize">{b.mode || "video"}</dd></div>
-          <div><dt className="text-slate-500">Fee</dt><dd className="font-medium">₹{b.fee ?? "—"}</dd></div>
+          <div><dt className="text-slate-500">Fee</dt><dd className="font-medium">{b.fee != null ? `₹${b.fee}` : "—"}</dd></div>
         </dl>
 
         {upcoming && (

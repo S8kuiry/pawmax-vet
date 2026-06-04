@@ -1,16 +1,20 @@
-import { Schema, model, models, Types } from "mongoose";
-
-const PetSchema = new Schema({
-  ownerId: { type: Types.ObjectId, ref: "User", required: true, index: true },
-  name: { type: String, required: true, trim: true, maxlength: 60 },
-  species: { type: String, enum: ["Dog","Cat","Rabbit","Bird","Reptile","Other"], required: true },
-  breed: { type: String, trim: true, maxlength: 80 },
-  sex: { type: String, enum: ["male","female","unknown"], default: "unknown" },
-  dob: { type: Date },
-  weightKg: { type: Number, min: 0, max: 200 },
-  color: { type: String, maxlength: 40 },
-  photoUrl: { type: String },
-  notes: { type: String, maxlength: 2000 },
-}, { timestamps: true });
-
-export default models.Pet || model("Pet", PetSchema);
+import mongoose, { Schema, models, model } from "mongoose";
+const PetSchema = new Schema(
+  {
+    ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    name: { type: String, required: true, maxlength: 80 },
+    species: { type: String, required: true, maxlength: 40 }, // dog, cat, rabbit...
+    breed: { type: String, default: "", maxlength: 80 },
+    sex: { type: String, enum: ["male", "female", "unknown"], default: "unknown" },
+    birthDate: { type: Date },
+    weightKg: { type: Number, min: 0, max: 500 },
+    color: { type: String, default: "", maxlength: 40 },
+    microchip: { type: String, default: "", maxlength: 40 },
+    allergies: { type: [String], default: [] },
+    notes: { type: String, default: "", maxlength: 2000 },
+    photoUrl: { type: String, default: "" },
+    avatarColor: { type: String, default: "" },
+  },
+  { timestamps: true },
+);
+export default (models.Pet as mongoose.Model<any>) || model("Pet", PetSchema);

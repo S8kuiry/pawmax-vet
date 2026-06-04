@@ -42,7 +42,7 @@ export default async function PetsPage() {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 text-sm text-slate-600">
-                Weight: {p.weightKg ?? "—"} kg {p.dob && `· Age: ${age(p.dob)}`}
+                Weight: {p.weightKg ?? "—"} kg {p.birthDate && `· Age: ${age(p.birthDate)}`}
               </div>
             </Link>
           ))}
