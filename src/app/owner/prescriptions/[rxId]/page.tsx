@@ -9,7 +9,7 @@ export default async function RxDetail({ params }: { params: Promise<{ rxId: str
   const { rxId } = await params;
   const session = await getSession();
   await dbConnect();
-  const rx = await Prescription.findOne({ _id: rxId, ownerId: session!.idd }).lean() as any;
+  const rx = await Prescription.findOne({ _id: rxId, ownerId: session!.id }).lean() as any;
   if (!rx) notFound();
 
   return (
