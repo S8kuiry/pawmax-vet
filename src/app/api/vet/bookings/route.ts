@@ -7,6 +7,7 @@ import Pet from "@/models/Pet";
 import User from "@/models/User";
 import Service from "@/models/Service";
 import { notifyBookingEvent } from "@/lib/notifications";
+import { generateBookingCode } from "@/lib/booking-code";
 const querySchema = z.object({
   status: z
     .enum(["pending", "confirmed", "in_progress", "completed", "cancelled", "declined", "no_show"])
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
   if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
   if (!owner) return NextResponse.json({ error: "Owner not found" }, { status: 404 });
   const booking = await Booking.create({
+    bookingCode: generateBookingCode(),
     vetId: guard.session.id,
     ownerId: parsed.data.ownerId,
     petId: parsed.data.petId,

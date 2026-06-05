@@ -1,6 +1,9 @@
 import mongoose, { Schema, models, model } from "mongoose";
+import { generateBookingCode } from "@/lib/booking-code";
+
 const BookingSchema = new Schema(
   {
+    bookingCode: { type: String, unique: true, index: true },
     vetId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     petId: { type: Schema.Types.ObjectId, ref: "Pet", required: true, index: true },
@@ -26,5 +29,17 @@ const BookingSchema = new Schema(
   { timestamps: true },
 );
 BookingSchema.index({ vetId: 1, startAt: 1 });
-export default (models.Booking as mongoose.Model<any>) ||
-  model("Booking", BookingSchema);
+
+// Mongoose 9+ — no `next` callback; sync middleware runs before save
+BookingSchema.pre("save", function () {
+  if (!this.bookingCode) {
+    this.bookingCode = generateBookingCode();
+  }
+});
+
+// Next.js hot-reload caches models — drop stale Booking so bookingCode is always in schema
+if (models.Booking) {
+  delete models.Booking;
+}
+
+export default model("Booking", BookingSchema);

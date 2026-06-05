@@ -99,7 +99,7 @@ export default function BookVetPage({ params }: { params: Promise<{ vetId: strin
       }),
     });
     setLoading(false);
-    const data = await res.json();
+    const data = await res.json().catch(() => ({} as { error?: string; booking?: { _id: string } }));
     if (!res.ok) {
       setError(data.error || "Booking failed");
       if (res.status === 409) fetchSlots(vetId);
