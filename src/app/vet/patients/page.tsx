@@ -7,7 +7,7 @@ import Pet from "@/models/Pet";
 export default async function VetPatientsPage() {
   const session = await getSession();
   await dbConnect();
-  const petIds: string[] = await Booking.distinct("petId", { vetId: session!.id });
+  const petIds = await Booking.distinct("petId", { vetId: session!.id });
   const patients = await Pet.find({ _id: { $in: petIds } }).sort({ name: 1 }).lean();
 
   return (
