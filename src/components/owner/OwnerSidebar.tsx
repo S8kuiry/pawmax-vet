@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, PawPrint, CalendarDays, Stethoscope, FileText,
   Pill, MessageSquare, CreditCard, Bell, Settings, LogOut, Plus,
+  PawPrintIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -44,22 +45,27 @@ export function OwnerSidebar({ user }: { user: { name: string; email: string } }
   const initials = user.name.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
   return (
     <aside className="fixed inset-y-0 left-0 w-64 bg-[#0E1525] border-r border-blue-700 flex flex-col z-30 text-white">
-      <div className="h-16 flex items-center gap-2 px-6 border-b border-gray-200/40 ">
-        <div className="size-9 rounded-xl bg-white grid place-items-center text-blue-600 font-bold">P</div>
-        <span className="font-semibold text-white">PetCare</span>
+      <div className="px-6 py-6 flex items-center gap-3 border-b border-white/5">
+        <div className="size-10 rounded-xl bg-blue-500/15 grid place-items-center ring-1 ring-blue-400/30">
+          <PawPrintIcon className="size-5 text-blue-400" />
+        </div>
+        <div className="leading-tight">
+          <p className="font-semibold tracking-tight">PetCare</p>
+          <p className="text-xs text-slate-400">Pet Care Platform</p>
+        </div>
       </div>
 
-      <Link
+      {/* <Link
         href="/owner/book"
         className="mx-4 mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-blue-600 text-sm font-medium py-2.5 hover:bg-blue-50 transition"
       >
         <Plus className="size-4" /> Book a Vet
-      </Link>
+      </Link> */}
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {NAV.map((group) => (
           <div key={group.section}>
-            <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-blue-200">
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               {group.section}
             </p>
             <ul className="space-y-0.5">
@@ -70,10 +76,10 @@ export function OwnerSidebar({ user }: { user: { name: string; email: string } }
                     <Link
                       href={it.href}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition",
+                        "flex items-center gap-3 px-3 py-2 rounded-sm text-xs font-small tracking-wide transition",
                         active
-                          ? "bg-white text-blue-700 font-medium"
-                          : "text-blue-100 hover:bg-white hover:text-blue-700"
+                          ? "bg-white text-blue-700/90 font-medium"
+                          : "text-blue-100/90 hover:bg-white hover:text-blue-700/90"
                       )}
                     >
                       <it.icon className="size-4" />
@@ -88,11 +94,12 @@ export function OwnerSidebar({ user }: { user: { name: string; email: string } }
       </nav>
 
       {/* Container needs 'relative' so the dropdown displays correctly above it */}
+      {/* Container needs 'relative' so the dropdown displays correctly above it */}
       <div className="relative p-4 border-t border-gray-200/40 bg-[#0E1525] shrink-0">
 
         {/* Floating Dropdown Menu */}
         {isOpen && (
-          <div className="absolute bottom-full left-4 right-4 mb-2 p-1.5 rounded-xl border border-[#243249]/50 bg-[#111a2e] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-100">
+          <div className="absolute bottom-full left-4 right-4 mb-2 p-1.5 rounded-xl border border-white/5 bg-[#111a2e] shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-100">
             <form action="/api/auth/logout" method="post">
               <button
                 type="submit"
@@ -120,10 +127,10 @@ export function OwnerSidebar({ user }: { user: { name: string; email: string } }
             {/* User Info Matrix */}
             <div className="flex flex-col min-w-0">
               <p className="text-[13.5px] font-semibold text-slate-200 tracking-tight leading-none mb-1 truncate">
-                {user.name}
+                {user.name.split(" ")[0].charAt(0).toUpperCase() + user.name.split(" ")[0].slice(1, user.name.length - 1).toLowerCase()}
               </p>
               <p className="text-[11px] font-medium text-slate-500 tracking-normal leading-none truncate">
-                {user.email}
+                {user?.email}
               </p>
             </div>
           </div>
@@ -132,6 +139,8 @@ export function OwnerSidebar({ user }: { user: { name: string; email: string } }
           <div className="size-1.5 rounded-full bg-slate-600 group-hover:bg-blue-400 transition-colors shrink-0 mr-1" />
         </button>
       </div>
+
+
     </aside>
   );
 }

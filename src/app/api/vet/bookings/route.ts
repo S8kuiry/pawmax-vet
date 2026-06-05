@@ -6,6 +6,7 @@ import Booking from "@/models/Booking";
 import Pet from "@/models/Pet";
 import User from "@/models/User";
 import Service from "@/models/Service";
+import { notifyBookingEvent } from "@/lib/notifications";
 const querySchema = z.object({
   status: z
     .enum(["pending", "confirmed", "in_progress", "completed", "cancelled", "declined", "no_show"])
@@ -87,5 +88,17 @@ export async function POST(req: Request) {
     patientName: pet.name,
     ownerName: owner.name,
   });
+
+  const status = parsed.data.status ?? "confirmed";
+  try {
+    if (status === "confirmed") {
+      await notifyBookingEvent("booking.confirmed", booking.toObject());
+    } else {
+      await notifyBookingEvent("booking.requested", booking.toObject());
+    }
+  } catch (err) {
+    console.error("vet booking create notification error:", err);
+  }
+
   return NextResponse.json({ booking }, { status: 201 });
 }

@@ -17,23 +17,49 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, role }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
-      if (!data.user?.role) throw new Error("Invalid login response");
-      window.location.assign(homePathForRole(data.user.role));
-      return;
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (role === "vet") {
+      try {
+        const res = await fetch("/api/auth/vet_login", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, role }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Login failed");
+        if (!data.user?.role) throw new Error("Invalid login response");
+        window.location.assign(homePathForRole(data.user.role));
+        return;
+
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+
+    } else {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, role }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Login failed");
+        if (!data.user?.role) throw new Error("Invalid login response");
+        window.location.assign(homePathForRole(data.user.role));
+        return;
+
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     }
+
+
+
   }
 
   return (
@@ -127,9 +153,8 @@ function RoleTab({
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-        active ? "bg-white text-brand-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
-      }`}
+      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${active ? "bg-white text-brand-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
+        }`}
     >
       {icon}
       {label}

@@ -47,45 +47,47 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.redirect(new URL("/owner/settings", req.url));
 }
-
 export async function PATCH(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "owner") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    // 1. Ensure database connection is active
+    await dbConnect();
 
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
+    const body = await req.json();
+
+    const updateData: any = {
+      name: body.name,
+      phone: body.phone,
+      emergencyContact: body.emergencyContact,
+      address: body.address,
+    };
+
+    // Map the plain text address string into the schema's array structure
+   
+
+    // 2. Perform the update and capture the result
+    const updatedUser = await User.findByIdAndUpdate(session.id, updateData, { new: true });
+
+    if (!updatedUser) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 });
+    }
+
+    // 3. FIX: You must return a successful response back to your client component!
+    return NextResponse.json({ success: true, user: updatedUser }, { status: 200 });
+
+  } catch (error: any) {
+    // 4. DIAGNOSTIC: This prints the real underlying error into your VS Code terminal!
+    console.error("❌ BACKEND PATCH ERROR:", error);
+
     return NextResponse.json(
-      { error: "Validation failed", issues: parsed.error.flatten() },
-      { status: 400 },
+      { 
+        error: "Bad Request", 
+        details: error?.message || "Unknown server error" 
+      }, 
+      { status: 400 }
     );
   }
-
-  await dbConnect();
-
-  const d = parsed.data;
-  const update: Record<string, unknown> = {};
-  if (d.name !== undefined) update.name = d.name;
-  if (d.phone !== undefined) update.phone = d.phone;
-  if (d.address !== undefined) update.address = d.address;
-  if (d.emergencyContact !== undefined) update.emergencyContact = d.emergencyContact;
-  if (d.notifications) update.notifications = d.notifications;
-
-  const user = await User.findByIdAndUpdate(session.id, update, {
-    new: true,
-    runValidators: true,
-  })
-    .select("-password")
-    .lean();
-
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  return NextResponse.json({ user });
 }

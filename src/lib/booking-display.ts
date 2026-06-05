@@ -1,5 +1,6 @@
 import User from "@/models/User";
 import Pet from "@/models/Pet";
+import { getVetNamesByIds } from "@/lib/vet-resolve";
 
 export function bookingStartAt(b: { startAt?: Date | string; date?: Date | string }) {
   const raw = b.startAt ?? b.date;
@@ -18,8 +19,7 @@ export function formatInrFromCents(cents?: number | null) {
 export async function enrichBookingsForOwner(bookings: Record<string, unknown>[]) {
   if (!bookings.length) return [];
   const vetIds = [...new Set(bookings.map((b) => String(b.vetId)))];
-  const vets = await User.find({ _id: { $in: vetIds } }).select("name").lean();
-  const vetMap = Object.fromEntries(vets.map((v) => [String(v._id), v.name as string]));
+  const vetMap = await getVetNamesByIds(vetIds);
 
   return bookings.map((b) => {
     const start = bookingStartAt(b as { startAt?: Date; date?: Date });

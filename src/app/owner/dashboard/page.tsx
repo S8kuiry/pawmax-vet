@@ -39,8 +39,8 @@ export default async function OwnerDashboard() {
     <div className="space-y-8">
       <section className="rounded-2xl bg-gradient-to-r from-[#0E1525] to-blue-500 text-white p-8">
         <p className="text-blue-100 text-sm">Welcome back</p>
-        <h1 className="text-3xl font-bold mt-1">Hi {session!.email.split("@")[0]} 👋</h1>
-        <p className="mt-2 text-blue-50">Manage your pets, book vets, track health — all in one place.</p>
+        <h1 className="text-3xl font-bold tracking-wider mt-1">Hi {session!.email.split("@")[0].charAt(0).toUpperCase() + session!.email.split("@")[0].slice(1,session!.email.split("@")[0].length).toLowerCase()} 👋</h1>
+        <p className="mt-2 text-sm text-blue-50">Manage your Pets, book Vets, track Health Records — all in one place.</p>
         <div className="mt-6 flex gap-3 flex-wrap">
           <Link href="/owner/vets" className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50">Book a vet</Link>
           <Link href="/owner/pets/new" className="bg-white text-blue-700 border border-white/30 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 ">+ Add pet</Link>

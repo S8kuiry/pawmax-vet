@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isValidObjectId } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { getSession, requireRole } from "@/lib/auth";
 import Booking from "@/models/Booking";
 import Pet from "@/models/Pet";
+import Slot from "@/models/Slot";
 import User from "@/models/User";
+import { findVetById } from "@/lib/vet-resolve";
+import { notifyBookingEvent } from "@/lib/notifications";
+import { claimSlot, hasVetConflict } from "@/lib/slot-booking";
 
-const createSchema = z.object({
-  vetId: z.string().min(1),
-  petId: z.string().min(1),
-  startAt: z.string().datetime(),
-  endAt: z.string().datetime().optional(),
-  mode: z.enum(["in-person", "video"]).optional(),
-  reason: z.string().max(500).optional(),
-});
+const createSchema = z
+  .object({
+    vetId: z.string().min(1),
+    petId: z.string().min(1),
+    slotId: z.string().min(1).optional(),
+    startAt: z.string().datetime().optional(),
+    endAt: z.string().datetime().optional(),
+    mode: z.enum(["in-person", "video"]).optional(),
+    reason: z.string().max(500).optional(),
+  })
+  .refine((d) => d.slotId || d.startAt, {
+    message: "Either slotId or startAt is required",
+  });
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -48,29 +58,61 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const startAt = new Date(parsed.data.startAt);
-  const endAt = parsed.data.endAt
-    ? new Date(parsed.data.endAt)
-    : new Date(startAt.getTime() + 30 * 60 * 1000);
-  if (endAt <= startAt) {
-    return NextResponse.json({ error: "endAt must be after startAt" }, { status: 400 });
-  }
-
   await dbConnect();
 
   const [pet, vet] = await Promise.all([
     Pet.findOne({ _id: parsed.data.petId, ownerId: session.id }).lean(),
-    User.findOne({ _id: parsed.data.vetId, role: "vet" }).select("name").lean(),
+    findVetById(parsed.data.vetId),
   ]);
   if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
   if (!vet) return NextResponse.json({ error: "Vet not found" }, { status: 404 });
 
+  let startAt: Date;
+  let endAt: Date;
+  let slotId: string | undefined;
+
+  if (parsed.data.slotId) {
+    if (!isValidObjectId(parsed.data.slotId)) {
+      return NextResponse.json({ error: "Invalid slot id" }, { status: 400 });
+    }
+
+    const slot = await Slot.findOne({
+      _id: parsed.data.slotId,
+      vetId: parsed.data.vetId,
+      status: "available",
+    }).lean();
+
+    if (!slot) {
+      return NextResponse.json({ error: "Slot not available" }, { status: 409 });
+    }
+
+    startAt = new Date(slot.startTime as Date);
+    endAt = new Date(slot.endTime as Date);
+    slotId = parsed.data.slotId;
+  } else {
+    startAt = new Date(parsed.data.startAt!);
+    endAt = parsed.data.endAt
+      ? new Date(parsed.data.endAt)
+      : new Date(startAt.getTime() + 30 * 60 * 1000);
+  }
+
+  if (endAt <= startAt) {
+    return NextResponse.json({ error: "endAt must be after startAt" }, { status: 400 });
+  }
+
+  const conflict = await hasVetConflict(parsed.data.vetId, startAt, endAt);
+  if (conflict) {
+    return NextResponse.json({ error: "This time slot is no longer available" }, { status: 409 });
+  }
+
   const owner = await User.findById(session.id).select("name").lean();
+  const priceCents = vet.consultationFee ? Math.round(vet.consultationFee * 100) : 0;
 
   const booking = await Booking.create({
     vetId: parsed.data.vetId,
     ownerId: session.id,
     petId: parsed.data.petId,
+    slotId,
     startAt,
     endAt,
     mode: parsed.data.mode ?? "video",
@@ -78,8 +120,23 @@ export async function POST(req: NextRequest) {
     status: "pending",
     patientName: pet.name,
     ownerName: owner?.name ?? session.email,
-    priceCents: 0,
+    priceCents,
+    currency: "INR",
   });
+
+  if (slotId) {
+    const claimed = await claimSlot(slotId, parsed.data.vetId, String(booking._id));
+    if (!claimed) {
+      await Booking.findByIdAndDelete(booking._id);
+      return NextResponse.json({ error: "Slot was just booked by someone else" }, { status: 409 });
+    }
+  }
+
+  try {
+    await notifyBookingEvent("booking.requested", booking.toObject());
+  } catch (err) {
+    console.error("booking notification error:", err);
+  }
 
   return NextResponse.json({ booking }, { status: 201 });
 }

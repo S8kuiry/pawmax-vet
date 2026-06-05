@@ -4,15 +4,15 @@ import { dbConnect } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import Booking from "@/models/Booking";
 import Pet from "@/models/Pet";
-import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { formatInrFromCents } from "@/lib/booking-display";
+import Vet from "@/models/Vet";
 
 export default async function VetDashboardPage() {
   const session = await getSession();
   await dbConnect();
   const vetId = session!.id;
-  const user = await User.findById(vetId).select("name").lean();
+  const user = await Vet.findById(vetId).select("name").lean();
 
   const now = new Date();
   const dayStart = new Date(now);
@@ -35,7 +35,7 @@ export default async function VetDashboardPage() {
   ]);
 
   const monthPatients = await Pet.countDocuments({ _id: { $in: petIds }, createdAt: { $gte: monthStart } });
-  const displayName = user?.name ? `Dr. ${user.name}` : "Doctor";
+  const displayName = user?.name ? `Dr. ${user.name.split(" ")[0].charAt(0).toUpperCase() + user.name.split(" ")[0].slice(1,user.name.length-1).toLowerCase()}` : "Doctor";
 
   const stats = [
     { label: "Today's appointments", value: String(todayCount), icon: CalendarDays },
@@ -78,7 +78,7 @@ export default async function VetDashboardPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {todayBookings.map((b) => (
-                <li key={String(b._id)} className="py-3 text-sm flex justify-between gap-4">
+                <li key={String(b._id)} className="py-3 text-xs flex justify-between gap-4">
                   <span>
                     {new Date(b.startAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     {" — "}

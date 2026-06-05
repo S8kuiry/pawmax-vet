@@ -5,6 +5,7 @@ const BookingSchema = new Schema(
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     petId: { type: Schema.Types.ObjectId, ref: "Pet", required: true, index: true },
     serviceId: { type: Schema.Types.ObjectId, ref: "Service" },
+    slotId: { type: Schema.Types.ObjectId, ref: "Slot", index: true },
     startAt: { type: Date, required: true, index: true },
     endAt: { type: Date, required: true },
     mode: { type: String, enum: ["in-person", "video"], default: "in-person" },

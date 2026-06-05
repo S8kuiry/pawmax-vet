@@ -17,8 +17,9 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/auth/register", {
+    if (role === "vet") {
+      try {
+      const res = await fetch("/api/auth/vet_register", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -28,10 +29,28 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || "Registration failed");
       window.location.assign(pathAfterRegister(role));
       return;
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...form, role }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Registration failed");
+        window.location.assign(pathAfterRegister(role));
+        return;
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     }
   }
 
@@ -121,15 +140,13 @@ function RoleCard({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-xl border-2 p-4 transition ${
-        active
+      className={`text-left rounded-xl border-2 p-4 transition ${active
           ? "border-brand-600 bg-brand-50"
           : "border-slate-200 hover:border-slate-300 bg-white"
-      }`}
+        }`}
     >
-      <div className={`h-9 w-9 rounded-lg grid place-items-center mb-2 ${
-        active ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600"
-      }`}>
+      <div className={`h-9 w-9 rounded-lg grid place-items-center mb-2 ${active ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600"
+        }`}>
         {icon}
       </div>
       <div className="font-semibold text-slate-900">{title}</div>

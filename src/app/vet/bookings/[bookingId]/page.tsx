@@ -4,6 +4,7 @@ import { Video } from "lucide-react";
 import { dbConnect } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import Booking from "@/models/Booking";
+import { BookingActions } from "@/components/vet/BookingActions";
 
 export default async function VetBookingDetail({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = await params;
@@ -24,11 +25,7 @@ export default async function VetBookingDetail({ params }: { params: Promise<{ b
         <div><dt className="text-slate-500">Notes</dt><dd className="font-medium">{b.notes || "—"}</dd></div>
       </dl>
 
-      {b.status === "pending" && (
-        <form action={`/api/vet/bookings/${b._id}`} method="POST" className="mt-6">
-          <p className="text-sm text-slate-500 mb-2">Confirm or decline from the API console, or use PATCH via your admin tools.</p>
-        </form>
-      )}
+      {b.status === "pending" && <BookingActions bookingId={String(b._id)} />}
 
       {b.petId && (
         <Link href={`/vet/patients/${b.petId}`} className="inline-block mt-6 text-blue-600 font-medium">

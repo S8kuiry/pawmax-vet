@@ -12,10 +12,22 @@ const schema = z.object({
   gender: z.enum(["male", "female", "unknown"]).optional(),
 });
 
+// 🟢 Breed data maps for each species choice
+const BREEDS_MAP: Record<string, string[]> = {
+  Dog: ["Labrador Retriever", "German Shepherd", "Golden Retriever", "French Bulldog", "Beagle", "Poodle", "Rottweiler", "Boxer", "Shih Tzu", "Dachshund", "Mixed Breed"],
+  Cat: ["Persian", "Maine Coon", "Ragdoll", "Siamese", "British Shorthair", "Abyssinian", "Sphynx", "Bengal", "Domestic Shorthair", "Mixed Breed"],
+  Rabbit: ["Netherland Dwarf", "Holland Lop", "Mini Rex", "Flemish Giant", "Lionhead", "Angora"],
+  Bird: ["Budgerigar (Parakeet)", "Cockatiel", "Lovebird", "Canary", "Finches", "African Grey"],
+  Reptile: ["Bearded Dragon", "Leopard Gecko", "Ball Python", "Corn Snake", "Red-Eared Slider"],
+};
+
 export default function NewPetPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // 🟢 Track selected species to change breeds dropdown dynamically
+  const [selectedSpecies, setSelectedSpecies] = useState<string>("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +55,10 @@ export default function NewPetPage() {
     router.refresh();
   }
 
+  // Determine available breeds array based on dynamic selection
+  const availableBreeds = BREEDS_MAP[selectedSpecies] || [];
+  const hasBreedOptions = availableBreeds.length > 0;
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-blue-700">Add a Pet</h1>
@@ -52,14 +68,38 @@ export default function NewPetPage() {
         {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>}
 
         <Field label="Name" name="name" required />
+        
         <div className="grid grid-cols-2 gap-4">
-          <Select label="Species" name="species" required options={["Dog","Cat","Rabbit","Bird","Reptile","Other"]} />
-          <Field label="Breed" name="breed" />
+          <Select 
+            label="Species" 
+            name="species" 
+            required 
+            options={["Dog","Cat","Rabbit","Bird","Reptile","Other"]} 
+            value={selectedSpecies}
+            onChange={(e) => setSelectedSpecies(e.target.value)}
+          />
+
+          {/* 🟢 DYNAMIC BREED ELEMENT */}
+          {selectedSpecies === "Other" || (!hasBreedOptions && selectedSpecies !== "") ? (
+            // If "Other" is picked, let them type whatever breed they want freely
+            <Field label="Breed" name="breed" placeholder="Specify breed details..." />
+          ) : (
+            // Regular dynamic species matches
+            <Select 
+              label="Breed" 
+              name="breed" 
+              disabled={!selectedSpecies} 
+              defaultText={selectedSpecies ? "Select breed…" : "Select species first…"}
+              options={availableBreeds} 
+            />
+          )}
         </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Field label="Date of birth" name="dob" type="date" />
           <Field label="Weight (kg)" name="weightKg" type="number" step="0.1" />
         </div>
+        
         <Select label="Gender" name="gender" options={["male","female","unknown"]} />
 
         <div className="flex gap-3 pt-2">
@@ -77,16 +117,18 @@ function Field({ label, ...p }: { label: string } & React.InputHTMLAttributes<HT
   return (
     <label className="block">
       <span className="text-sm font-medium text-slate-700">{label}{p.required && " *"}</span>
-      <input {...p} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+      <input {...p} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400" />
     </label>
   );
 }
-function Select({ label, options, ...p }: { label: string; options: string[] } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+
+// 🟢 Modified Select component to handle variable placeholder wording options smoothly
+function Select({ label, options, defaultText = "Select…", ...p }: { label: string; options: string[]; defaultText?: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-slate-700">{label}{p.required && " *"}</span>
-      <select {...p} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-        <option value="">Select…</option>
+      <select {...p} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400">
+        <option value="">{defaultText}</option>
         {options.map(o => <option key={o} value={o}>{o[0].toUpperCase()+o.slice(1)}</option>)}
       </select>
     </label>
