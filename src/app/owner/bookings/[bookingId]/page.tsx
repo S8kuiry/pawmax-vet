@@ -56,7 +56,7 @@ export default async function BookingDetail({ params }: { params: Promise<{ book
             </div>
             
             <h1 className="text-xl font-black text-white tracking-tight pt-1">
-              {b.petName} <span className="font-normal text-slate-400 text-base mx-1">with</span> Dr. {b.vetName}
+              {b.petName} <span className="font-normal text-slate-400 text-base mx-1">checkup with</span> Dr. {b.vetName}
             </h1>
             
             <p className="text-xs text-slate-400 font-medium max-w-2xl leading-relaxed">
