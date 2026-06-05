@@ -66,7 +66,8 @@ export default function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="flex items-center gap-2 mb-8">
+          <Link href="/">
+          <div className="flex items-center gap-2 mb-8 cursor-pointer hover:scale-105 transition-all duration-300 active:scale-95" >
             <div className="h-10 w-10 rounded-xl bg-brand-600 grid place-items-center">
               <PawPrint className="text-white h-5 w-5" />
             </div>
@@ -74,6 +75,7 @@ export default function LoginPage() {
               PetCare<span className="text-brand-600">Vet</span>
             </span>
           </div>
+          </Link>
 
           <h1 className="text-3xl font-bold text-slate-900">Welcome back</h1>
           <p className="mt-2 text-slate-500">Sign in to continue.</p>

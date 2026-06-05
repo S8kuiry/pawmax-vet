@@ -59,7 +59,8 @@ export default function RegisterPage() {
       {/* Left: form */}
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="flex items-center gap-2 mb-8">
+<Link href="/">
+          <div className="flex items-center gap-2 mb-8 cursor-pointer hover:scale-105 transition-all duration-300 active:scale-95" >
             <div className="h-10 w-10 rounded-xl bg-brand-600 grid place-items-center">
               <PawPrint className="text-white h-5 w-5" />
             </div>
@@ -67,6 +68,7 @@ export default function RegisterPage() {
               PetCare<span className="text-brand-600">Vet</span>
             </span>
           </div>
+          </Link>
 
           <h1 className="text-3xl font-bold text-slate-900">Create your account</h1>
           <p className="mt-2 text-slate-500">Choose how you'll use PetCareVet.</p>
