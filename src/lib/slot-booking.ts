@@ -16,7 +16,7 @@ export async function hasVetConflict(
 ) {
   const q: Record<string, unknown> = {
     vetId,
-    status: { $in: ["pending", "confirmed", "in_progress"] },
+    status: { $in: ["confirmed", "in_progress"] },
     startAt: { $lt: endAt },
     endAt: { $gt: startAt },
   };

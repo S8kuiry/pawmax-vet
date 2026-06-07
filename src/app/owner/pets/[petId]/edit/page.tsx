@@ -5,17 +5,30 @@ import { getSession } from "@/lib/auth";
 import EditPetForm from "./EditPetForm/page";
 
 interface EditPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ petId: string }>;
+}
+
+// Resilient UTC date string formatter to prevent local timezone shifts
+function formatDateToInput(dateInput: any): string {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "";
+  
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`; // Strictly returns YYYY-MM-DD
 }
 
 export default async function EditPetPage({ params }: EditPageProps) {
-  const { id } = await params;
+  const { petId } = await params;
   const session = await getSession();
   
   await dbConnect();
   
   // Fetch document securely scoped to authenticated owner
-  const petDoc = await Pet.findOne({ _id: id, ownerId: session!.id }).lean();
+  const petDoc = await Pet.findOne({ _id: petId, ownerId: session!.id }).lean();
   
   if (!petDoc) {
     notFound();
@@ -27,17 +40,15 @@ export default async function EditPetPage({ params }: EditPageProps) {
     name: String(petDoc.name),
     species: String(petDoc.species),
     breed: petDoc.breed ? String(petDoc.breed) : "",
-    dob: petDoc.birthDate ? new Date(petDoc.birthDate).toISOString().split("T")[0] : "",
+    birthDate: formatDateToInput(petDoc.birthDate), // Safely converted
     weightKg: petDoc.weightKg ? Number(petDoc.weightKg) : undefined,
     gender: petDoc.sex ? String(petDoc.sex) : "unknown",
   };
 
   return (
-    /* Light High-Contrast Canvas Framework */
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 w-full py-10 px-6 md:px-8 lg:px-12 antialiased flex flex-col items-center">
       <div className="w-full max-w-2xl space-y-6">
         
-        {/* Navigation Breadcrumb & Header Segment */}
         <div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 block mb-1">
             Data Core / Profiles
@@ -50,7 +61,6 @@ export default async function EditPetPage({ params }: EditPageProps) {
           </p>
         </div>
 
-        {/* Dynamic Client Form Component */}
         <EditPetForm pet={petData} />
 
       </div>

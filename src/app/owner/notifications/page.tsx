@@ -139,7 +139,8 @@ export default async function OwnerNotificationsPage() {
                         </h3>
                         
                         {isUnread && (
-                          <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-2xs font-bold text-blue-700 border border-blue-200 uppercase tracking-wider">
+                          <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200 uppercase tracking-wide\
+                          ">
                             New
                           </span>
                         )}

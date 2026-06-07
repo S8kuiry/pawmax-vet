@@ -31,14 +31,15 @@ export function PageHeader({
             {eyebrow}
           </p>
         )}
-        <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-semibold text-blue-600 tracking-tight">
           {title}
         </h1>
         {description && (
-          <p className="mt-2 text-sm md:text-base text-slate-600 max-w-2xl">
-            {description}
-          </p>
-        )}
+  /* 🟢 FIXED: Removed md:text-base so it doesn't stay large on desktop screen sizes */
+  <p className="mt-1 text-xs text-slate-500 max-w-xl leading-relaxed">
+    {description}
+  </p>
+)}
       </div>
       {actions && (
         <div className="flex items-center gap-2 shrink-0">{actions}</div>

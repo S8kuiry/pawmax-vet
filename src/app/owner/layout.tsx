@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import User from "@/models/User";
 import { OwnerShell } from "@/components/owner/OwnerShell";
+import { BgPawIcon } from "@/components/bgPawIcon";
 
 export default async function OwnerLayout({ children }: { children: ReactNode }) {
   const session = await getSession();

@@ -11,7 +11,7 @@ export default async function VetConsultationsPage() {
   const bookings = await Booking.find({
     vetId: session!.id,
     mode: "video",
-    status: { $in: ["confirmed", "in_progress", "pending"] },
+    status: { $in: ["confirmed", "in_progress"] },
     startAt: { $gte: new Date(Date.now() - 2 * 3600 * 1000) },
   })
     .sort({ startAt: 1 })

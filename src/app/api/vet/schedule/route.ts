@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   await dbConnect();
   const items = await Booking.find({
     vetId: guard.session.id,
-    status: { $in: ["pending", "confirmed", "in_progress"] },
+    status: { $in: ["confirmed", "in_progress"] },
     startAt: { $gte: from, $lte: to },
   })
     .sort({ startAt: 1 })

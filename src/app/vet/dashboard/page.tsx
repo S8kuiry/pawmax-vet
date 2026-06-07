@@ -21,7 +21,7 @@ export default async function VetDashboardPage() {
   dayEnd.setHours(23, 59, 59, 999);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [todayCount, activeCount, petIds, monthAgg, todayBookings, pending] = await Promise.all([
+  const [todayCount, activeCount, petIds, monthAgg, todayBookings, upcomingCount] = await Promise.all([
     Booking.countDocuments({ vetId, startAt: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["cancelled", "declined"] } }),
     Booking.countDocuments({ vetId, status: "in_progress" }),
     Booking.distinct("petId", { vetId }),
@@ -31,7 +31,7 @@ export default async function VetDashboardPage() {
     ]),
     Booking.find({ vetId, startAt: { $gte: dayStart, $lte: dayEnd }, status: { $nin: ["cancelled", "declined"] } })
       .sort({ startAt: 1 }).limit(8).lean(),
-    Booking.countDocuments({ vetId, status: "pending" }),
+    Booking.countDocuments({ vetId, status: "confirmed", startAt: { $gte: now } }),
   ]);
 
   const monthPatients = await Pet.countDocuments({ _id: { $in: petIds }, createdAt: { $gte: monthStart } });
@@ -92,17 +92,17 @@ export default async function VetDashboardPage() {
           )}
         </section>
         <aside className="rounded-2xl bg-white border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold mb-1">Pending requests</h2>
-          <p className="text-sm text-slate-500 mb-5">Booking requests awaiting your response.</p>
-          {pending === 0 ? (
+          <h2 className="text-lg font-semibold mb-1">Upcoming bookings</h2>
+          <p className="text-sm text-slate-500 mb-5">Confirmed appointments on your schedule.</p>
+          {upcomingCount === 0 ? (
             <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl text-sm text-slate-500">
-              All caught up.
+              No upcoming bookings.
             </div>
           ) : (
-            <div className="text-center py-10 border border-dashed border-amber-200 bg-amber-50 rounded-xl">
-              <p className="text-2xl font-semibold text-amber-800">{pending}</p>
-              <p className="text-sm text-amber-700 mt-1">pending booking{pending !== 1 ? "s" : ""}</p>
-              <Link href="/vet/bookings" className="inline-block mt-3 text-sm text-blue-600 font-medium">Review →</Link>
+            <div className="text-center py-10 border border-dashed border-blue-200 bg-blue-50 rounded-xl">
+              <p className="text-2xl font-semibold text-blue-800">{upcomingCount}</p>
+              <p className="text-sm text-blue-700 mt-1">confirmed booking{upcomingCount !== 1 ? "s" : ""}</p>
+              <Link href="/vet/bookings" className="inline-block mt-3 text-sm text-blue-600 font-medium">View schedule →</Link>
             </div>
           )}
         </aside>

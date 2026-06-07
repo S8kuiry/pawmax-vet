@@ -5,6 +5,8 @@ import { dbConnect } from "@/lib/db";
 import { requireVet } from "@/lib/vet-auth";
 import Consultation from "@/models/Consultation";
 import Booking from "@/models/Booking";
+import { notifyBookingEvent } from "@/lib/notifications";
+import { releaseSlotForBooking } from "@/lib/slot-booking";
 const patchSchema = z.object({
   action: z.enum(["start", "end", "cancel"]).optional(),
   subjective: z.string().max(5000).optional(),
@@ -51,10 +53,37 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (c.startedAt) {
       c.durationSeconds = Math.floor((c.endedAt.getTime() - c.startedAt.getTime()) / 1000);
     }
-    await Booking.findByIdAndUpdate(c.bookingId, { status: "completed" });
+    const booking = await Booking.findByIdAndUpdate(
+      c.bookingId,
+      { status: "completed" },
+      { new: true },
+    ).lean();
+    await c.save();
+    if (booking) {
+      try {
+        await notifyBookingEvent("booking.completed", booking);
+      } catch (err) {
+        console.error("consultation end notification error:", err);
+      }
+    }
+    return NextResponse.json({ consultation: c.toObject() });
   } else if (action === "cancel") {
     c.status = "cancelled";
-    await Booking.findByIdAndUpdate(c.bookingId, { status: "cancelled" });
+    const booking = await Booking.findByIdAndUpdate(
+      c.bookingId,
+      { status: "cancelled" },
+      { new: true },
+    ).lean();
+    await releaseSlotForBooking(String(c.bookingId));
+    await c.save();
+    if (booking) {
+      try {
+        await notifyBookingEvent("booking.cancelled", booking);
+      } catch (err) {
+        console.error("consultation cancel notification error:", err);
+      }
+    }
+    return NextResponse.json({ consultation: c.toObject() });
   }
   await c.save();
   return NextResponse.json({ consultation: c.toObject() });

@@ -4,8 +4,9 @@ import Booking from "@/models/Booking";
 import Thread from "@/models/Thread";
 import Consultation from "@/models/Consultation";
 import Message from "@/models/Message";
+import { notifyBookingEvent } from "@/lib/notifications";
 
-const ACTIVE_STATUSES = ["pending", "confirmed", "in_progress"] as const;
+const ACTIVE_STATUSES = ["confirmed", "in_progress"] as const;
 
 export function jitsiRoomName(bookingId: string) {
   return `petcare-${bookingId}`;
@@ -131,7 +132,18 @@ export async function endConsultation(
       );
     }
     await consultation.save();
-    await Booking.findByIdAndUpdate(result.booking._id, { status: "completed" });
+    const completed = await Booking.findByIdAndUpdate(
+      result.booking._id,
+      { status: "completed" },
+      { new: true },
+    ).lean();
+    if (completed) {
+      try {
+        await notifyBookingEvent("booking.completed", completed);
+      } catch (err) {
+        console.error("consultation completed notification error:", err);
+      }
+    }
 
     await Message.create({
       booking: result.booking._id,

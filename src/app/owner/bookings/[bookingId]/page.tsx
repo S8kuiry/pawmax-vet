@@ -27,7 +27,7 @@ export default async function BookingDetail({ params }: { params: Promise<{ book
   const [b] = await enrichBookingsForOwner([raw as Record<string, unknown>]);
   const canJoin =
     b.mode === "video" &&
-    ["confirmed", "in_progress", "pending"].includes(b.status as string);
+    ["confirmed", "in_progress"].includes(b.status as string);
 
   return (
     /* Full-Bleed Fluid Layout Frame */

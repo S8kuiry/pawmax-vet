@@ -61,9 +61,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   if (parsed.data.status) {
-    const eventMap: Record<string, "booking.confirmed" | "booking.declined" | "booking.cancelled" | null> = {
+    const eventMap: Record<string, "booking.confirmed" | "booking.completed" | "booking.cancelled" | null> = {
       confirmed: "booking.confirmed",
-      declined: "booking.declined",
+      completed: "booking.completed",
       cancelled: "booking.cancelled",
     };
     const event = eventMap[parsed.data.status];

@@ -95,8 +95,6 @@ export async function POST(req: Request) {
   try {
     if (status === "confirmed") {
       await notifyBookingEvent("booking.confirmed", booking.toObject());
-    } else {
-      await notifyBookingEvent("booking.requested", booking.toObject());
     }
   } catch (err) {
     console.error("vet booking create notification error:", err);

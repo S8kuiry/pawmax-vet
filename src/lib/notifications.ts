@@ -10,58 +10,34 @@ type BookingLike = {
   status?: string;
 };
 
-type BookingEvent =
-  | "booking.requested"
-  | "booking.pending"
-  | "booking.confirmed"
-  | "booking.declined"
-  | "booking.cancelled";
+type BookingEvent = "booking.confirmed" | "booking.completed" | "booking.cancelled";
 
 const EVENT_COPY: Record<
   BookingEvent,
   { vet?: { title: string; body: (b: BookingLike) => string }; owner?: { title: string; body: (b: BookingLike) => string } }
 > = {
-  "booking.requested": {
-    vet: {
-      title: "New booking request",
-      body: (b) =>
-        `${b.ownerName || "A pet owner"} requested a consultation for ${b.patientName || "their pet"} on ${formatWhen(b.startAt)}.`,
-    },
-    owner: {
-      title: "Booking request sent",
-      body: (b) =>
-        `Your consultation request for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} is pending vet confirmation.`,
-    },
-  },
-  "booking.pending": {
-    owner: {
-      title: "Booking pending",
-      body: (b) =>
-        `Your consultation for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} is awaiting confirmation.`,
-    },
-  },
   "booking.confirmed": {
     owner: {
       title: "Booking confirmed",
       body: (b) =>
-        `Your consultation for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} has been confirmed.`,
+        `Your consultation for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} is confirmed.`,
     },
     vet: {
-      title: "Booking confirmed",
+      title: "New booking",
       body: (b) =>
-        `You confirmed the consultation for ${b.patientName || "a pet"} (${b.ownerName || "owner"}) on ${formatWhen(b.startAt)}.`,
+        `${b.ownerName || "A pet owner"} booked a consultation for ${b.patientName || "their pet"} on ${formatWhen(b.startAt)}.`,
     },
   },
-  "booking.declined": {
+  "booking.completed": {
     owner: {
-      title: "Booking declined",
+      title: "Consultation ended",
       body: (b) =>
-        `Your consultation request for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} was declined.`,
+        `Your consultation for ${b.patientName || "your pet"} on ${formatWhen(b.startAt)} has ended.`,
     },
     vet: {
-      title: "Booking declined",
+      title: "Consultation ended",
       body: (b) =>
-        `You declined the consultation for ${b.patientName || "a pet"} on ${formatWhen(b.startAt)}.`,
+        `The consultation for ${b.patientName || "a pet"} (${b.ownerName || "owner"}) on ${formatWhen(b.startAt)} has ended.`,
     },
   },
   "booking.cancelled": {

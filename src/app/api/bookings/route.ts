@@ -8,6 +8,7 @@ import Pet from "@/models/Pet";
 import Slot from "@/models/Slot";
 import User from "@/models/User";
 import { findVetById } from "@/lib/vet-resolve";
+import { ensureConsultThread } from "@/lib/consult-session";
 import { notifyBookingEvent } from "@/lib/notifications";
 import { claimSlot, hasVetConflict } from "@/lib/slot-booking";
 import { generateBookingCode } from "@/lib/booking-code";
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
       endAt,
       mode: parsed.data.mode ?? "video",
       reason: parsed.data.reason ?? "",
-      status: "pending",
+      status: "confirmed",
       patientName: pet.name,
       ownerName: owner?.name ?? session.email,
       priceCents,
@@ -136,7 +137,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      await notifyBookingEvent("booking.requested", booking.toObject());
+      const bookingObj = booking.toObject();
+      await ensureConsultThread(bookingObj);
+      await notifyBookingEvent("booking.confirmed", bookingObj);
     } catch (err) {
       console.error("booking notification error:", err);
     }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
-import { Sparkles, ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(50),
@@ -28,7 +28,7 @@ interface EditPetFormProps {
     name: string;
     species: string;
     breed: string;
-    dob: string;
+    birthDate: string;
     weightKg?: number;
     gender: string;
   };
@@ -39,7 +39,6 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // Prefill state hooks from current database records
   const [selectedSpecies, setSelectedSpecies] = useState<string>(pet.species);
   const [selectedBreed, setSelectedBreed] = useState<string>(pet.breed);
 
@@ -57,9 +56,8 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
     setLoading(true);
     const { dob, gender, ...rest } = parsed.data;
     
-    // PUT routing endpoint with updated structural layout payload
     const res = await fetch(`/api/pets/${pet.id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...rest,
@@ -91,7 +89,6 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         </div>
       )}
 
-      {/* Profile Field Block: Name */}
       <Field 
         label="Pet Name" 
         name="name" 
@@ -99,7 +96,6 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         defaultValue={pet.name} 
       />
       
-      {/* Dynamic Taxonomy Dual Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select 
           label="Species System" 
@@ -109,11 +105,10 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
           value={selectedSpecies}
           onChange={(e) => {
             setSelectedSpecies(e.target.value);
-            setSelectedBreed(""); // Flush out invalid breed indexes on swap
+            setSelectedBreed(""); 
           }}
         />
 
-        {/* Dynamic Context Breed Renderer */}
         {selectedSpecies === "Other" || (!hasBreedOptions && selectedSpecies !== "") ? (
           <Field 
             label="Breed Taxonomy" 
@@ -135,13 +130,12 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         )}
       </div>
 
-      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field 
           label="Date of Birth" 
           name="dob" 
           type="date" 
-          defaultValue={pet.dob} 
+          defaultValue={pet.birthDate} 
         />
         
         <Field 
@@ -153,7 +147,6 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         />
       </div>
       
-      {/* Identity Configuration */}
       <Select 
         label="Gender Designation" 
         name="gender" 
@@ -161,12 +154,11 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         defaultValue={pet.gender} 
       />
 
-      {/* Lower Dashboard Toolbar Action Set */}
       <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
         <button 
           type="submit" 
           disabled={loading} 
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-xs font-bold transition shadow-md"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-3 text-xs font-bold transition shadow-md"
         >
           {loading ? "Syncing Matrix…" : <><Check className="size-3.5" /> Commit Changes</>}
         </button>
@@ -174,7 +166,7 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
         <button 
           type="button" 
           onClick={() => router.back()} 
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2 text-xs font-bold transition"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-3 text-xs font-bold transition"
         >
           <ArrowLeft className="size-3.5" /> Cancel
         </button>
@@ -184,14 +176,13 @@ export default function EditPetForm({ pet }: EditPetFormProps) {
   );
 }
 
-/* 🎨 Modern Dark-Card Input Sub-Components with Micro-Text Styles */
 function Field({ label, ...p }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block space-y-1.5">
       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}{p.required && " *"}</span>
       <input 
         {...p} 
-        className="w-full text-xs font-medium px-3.5 py-2.5 bg-[#0f172a] border border-blue-950/40 rounded-xl text-white outline-none focus:ring-1 focus:ring-blue-500/80 focus:border-blue-500/80 transition-all placeholder-slate-500 disabled:bg-slate-100 disabled:text-slate-400" 
+        className="w-full text-xs font-medium px-3.5 py-4 bg-[#0f172a] border border-blue-950/40 rounded-lg text-white outline-none focus:ring-1 focus:ring-blue-500/80 focus:border-blue-500/80 transition-all placeholder-slate-500 disabled:bg-slate-100 disabled:text-slate-400 [color-scheme:dark]" 
       />
     </label>
   );
@@ -203,7 +194,7 @@ function Select({ label, options, defaultText = "Select…", ...p }: { label: st
       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}{p.required && " *"}</span>
       <select 
         {...p} 
-        className="w-full text-xs font-medium px-3.5 py-2.5 bg-[#0f172a] border border-blue-950/40 rounded-xl text-white outline-none focus:ring-1 focus:ring-blue-500/80 focus:border-blue-500/80 transition-all disabled:bg-slate-100 disabled:text-slate-400 appearance-none"
+        className="w-full text-xs font-medium px-3.5 py-4 bg-[#0f172a] border border-blue-950/40 rounded-lg text-white outline-none focus:ring-1 focus:ring-blue-500/80 focus:border-blue-500/80 transition-all disabled:bg-slate-100 disabled:text-slate-400 appearance-none [color-scheme:dark]"
         style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, backgroundSize: '16px', backgroundPosition: 'calc(100% - 12px) center', backgroundRepeat: 'no-repeat' }}
       >
         <option value="" className="text-slate-500 bg-[#0f172a]">{defaultText}</option>
